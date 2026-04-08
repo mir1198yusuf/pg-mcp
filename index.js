@@ -36,12 +36,15 @@ app.post('/mcp', async (req, res) => {
           isError: true,
         };
       }
+      console.log(`[query] ${sql}`);
       try {
         const result = await pool.query(sql);
+        console.log(`[query done] ${result.rowCount} row(s) returned`);
         return {
           content: [{ type: 'text', text: JSON.stringify(result.rows, null, 2) }],
         };
       } catch (err) {
+        console.error(`[query error] ${err.message}`);
         return {
           content: [{ type: 'text', text: `DB error: ${err.message}` }],
           isError: true,
