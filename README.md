@@ -32,7 +32,7 @@ PORT=3000
 ## Run
 
 ```bash
-node index.js
+npm start
 ```
 
 ## Connect Claude Code
