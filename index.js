@@ -13,6 +13,7 @@ const pool = new Pool({
   user: process.env.PG_USER,
   password: process.env.PG_PASSWORD,
   database: process.env.PG_DB,
+  ssl: process.env.PG_SSL === 'true' ? { rejectUnauthorized: false } : false,
 });
 
 // Block any statement that isn't a read
