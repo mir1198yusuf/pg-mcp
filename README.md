@@ -37,17 +37,10 @@ node index.js
 
 ## Connect Claude Code
 
-Add this to your Claude Code MCP settings (`~/.claude/settings.json` or claude_desktop_config.json):
+Run this once in your terminal:
 
-```json
-{
-  "mcpServers": {
-    "pg-mcp": {
-      "type": "http",
-      "url": "http://localhost:3000/mcp"
-    }
-  }
-}
+```bash
+claude mcp add --transport http --scope local pgmcplocal http://localhost:3000/mcp
 ```
 
 Restart Claude Code. It will now have a `query` tool to read from your database.
@@ -55,11 +48,15 @@ Restart Claude Code. It will now have a `query` tool to read from your database.
 ## Security
 
 - **Read-only enforced server-side** — `INSERT`, `UPDATE`, `DELETE`, `DROP`, `CREATE`, `ALTER`, `TRUNCATE`, `GRANT`, `REVOKE`, `REPLACE`, `MERGE` are all blocked before reaching the DB.
-- **Local only** — the server binds to `localhost`. Never expose it to the internet.
-- **No logging** — query contents are not written to disk.
+- **Do not run on a public server** — this is intended to run locally on your own machine only. Running it on a VPS or any publicly reachable host exposes your database to anyone who can reach the port.
 
 ## Tool exposed to Claude
 
 | Tool | Input | Description |
 |------|-------|-------------|
 | `query` | `sql: string` | Runs a read-only SQL statement and returns rows as JSON |
+
+## Roadmap
+
+- **Docker / npm package** — ship as an npm-installable package that spins up the server in a Docker container, so Node.js is not required on the host machine.
+- **Multiple database support** — allow configuring multiple DB connections and selecting which one to query, instead of being limited to a single database.
