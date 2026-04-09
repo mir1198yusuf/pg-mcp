@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>pg-mcp</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, sans-serif;
+      background: #f5f5f5;
+      color: #222;
+      padding: 32px 24px;
+      max-width: 760px;
+      margin: 0 auto;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+
+    header h1 { font-size: 1.2rem; font-weight: 700; letter-spacing: 0.03em; }
+
+    /* Buttons */
+    button {
+      cursor: pointer;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      font-weight: 500;
+      padding: 6px 12px;
+    }
+    .btn-primary { background: #2563eb; color: #fff; }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-ghost { background: transparent; color: #555; border: 1px solid #ddd; }
+    .btn-ghost:hover { background: #eee; }
+    .btn-danger { background: transparent; color: #dc2626; border: 1px solid #fca5a5; }
+    .btn-danger:hover { background: #fef2f2; }
+
+    /* Status badge */
+    .badge {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 99px;
+    }
+    .badge-ok { background: #dcfce7; color: #166534; }
+    .badge-err { background: #fee2e2; color: #991b1b; }
+
+    /* DB list */
+    #db-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .db-card {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 14px 16px;
+    }
+    .db-card-row1 {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .db-name { font-weight: 600; font-size: 0.95rem; }
+    .db-meta { font-size: 0.78rem; color: #888; margin-top: 4px; }
+    .db-desc { font-size: 0.82rem; color: #555; margin-top: 2px; }
+    .db-actions { margin-left: auto; display: flex; gap: 6px; }
+
+    /* Form */
+    #form-container {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+      display: none;
+    }
+    #form-container h2 { font-size: 0.95rem; font-weight: 600; margin-bottom: 16px; }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .form-grid .full { grid-column: 1 / -1; }
+
+    label { display: block; font-size: 0.78rem; color: #555; margin-bottom: 4px; }
+    input[type="text"], input[type="password"], input[type="number"] {
+      width: 100%;
+      padding: 7px 10px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      outline: none;
+    }
+    input:focus { border-color: #2563eb; }
+    input:disabled { background: #f3f4f6; color: #888; }
+
+    .ssl-row { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; }
+    .ssl-row input { width: auto; }
+
+    .form-actions { display: flex; gap: 8px; }
+
+    .empty { text-align: center; color: #aaa; font-size: 0.88rem; padding: 40px 0; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>pg-mcp</h1>
+    <button class="btn-primary" onclick="showForm()">+ Add DB</button>
+  </header>
+
+  <div id="form-container">
+    <h2 id="form-title">Add Database</h2>
+    <div class="form-grid">
+      <div class="full">
+        <label>Name <span style="color:#aaa;font-size:0.72rem">(used by Claude to identify this DB)</span></label>
+        <input id="f-name" type="text" placeholder="e.g. main_app">
+      </div>
+      <div class="full">
+        <label>Description</label>
+        <input id="f-desc" type="text" placeholder="e.g. Main app DB — users, orders, products">
+      </div>
+      <div>
+        <label>Host</label>
+        <input id="f-host" type="text" placeholder="localhost">
+      </div>
+      <div>
+        <label>Port</label>
+        <input id="f-port" type="number" placeholder="5432">
+      </div>
+      <div>
+        <label>User</label>
+        <input id="f-user" type="text" placeholder="postgres">
+      </div>
+      <div>
+        <label>Password</label>
+        <input id="f-pass" type="password" placeholder="••••••••">
+      </div>
+      <div>
+        <label>Database</label>
+        <input id="f-db" type="text" placeholder="mydb">
+      </div>
+      <div style="display:flex;align-items:flex-end;padding-bottom:2px">
+        <label class="ssl-row">
+          <input id="f-ssl" type="checkbox"> Enable SSL
+        </label>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn-primary" onclick="submitForm()">Save</button>
+      <button class="btn-ghost" onclick="hideForm()">Cancel</button>
+    </div>
+  </div>
+
+  <div id="db-list"></div>
+
+  <script>
+    let editingName = null; // null = adding, string = editing
+
+    async function load() {
+      const res = await fetch('/api/dbs');
+      const dbs = await res.json();
+      render(dbs);
+    }
+
+    function render(dbs) {
+      const el = document.getElementById('db-list');
+      if (!dbs.length) {
+        el.innerHTML = '<div class="empty">No databases configured. Click "+ Add DB" to get started.</div>';
+        return;
+      }
+      el.innerHTML = dbs.map(d => `
+        <div class="db-card" id="card-${d.name}">
+          <div class="db-card-row1">
+            <span class="db-name">${esc(d.name)}</span>
+            <span class="badge ${d.status === 'available' ? 'badge-ok' : 'badge-err'}">
+              ${d.status === 'available' ? '● available' : '✕ unavailable'}
+            </span>
+            <div class="db-actions">
+              <button class="btn-ghost" onclick="showEdit('${esc(d.name)}')">Edit</button>
+              <button class="btn-ghost" onclick="retry('${esc(d.name)}')">Retry</button>
+              <button class="btn-danger" onclick="del('${esc(d.name)}')">Delete</button>
+            </div>
+          </div>
+          ${d.description ? `<div class="db-desc">${esc(d.description)}</div>` : ''}
+          <div class="db-meta">${esc(d.host)}:${d.port} / ${esc(d.db)} · user: ${esc(d.user)} · ssl: ${d.ssl ? 'on' : 'off'}</div>
+        </div>
+      `).join('');
+    }
+
+    function showForm(data = {}, isEdit = false) {
+      editingName = isEdit ? data.name : null;
+      document.getElementById('form-title').textContent = isEdit ? 'Edit Database' : 'Add Database';
+      document.getElementById('f-name').value = data.name || '';
+      document.getElementById('f-name').disabled = isEdit;
+      document.getElementById('f-desc').value = data.description || '';
+      document.getElementById('f-host').value = data.host || '';
+      document.getElementById('f-port').value = data.port || 5432;
+      document.getElementById('f-user').value = data.user || '';
+      document.getElementById('f-pass').value = data.password || '';
+      document.getElementById('f-db').value = data.db || '';
+      document.getElementById('f-ssl').checked = !!data.ssl;
+      document.getElementById('form-container').style.display = 'block';
+      document.getElementById('f-name').focus();
+    }
+
+    function hideForm() {
+      editingName = null;
+      document.getElementById('form-container').style.display = 'none';
+    }
+
+    async function showEdit(name) {
+      const res = await fetch('/api/dbs');
+      const dbs = await res.json();
+      const d = dbs.find(x => x.name === name);
+      if (d) showForm(d, true);
+    }
+
+    async function submitForm() {
+      const body = {
+        name:        document.getElementById('f-name').value.trim(),
+        description: document.getElementById('f-desc').value.trim(),
+        host:        document.getElementById('f-host').value.trim(),
+        port:        Number(document.getElementById('f-port').value) || 5432,
+        user:        document.getElementById('f-user').value.trim(),
+        password:    document.getElementById('f-pass').value,
+        db:          document.getElementById('f-db').value.trim(),
+        ssl:         document.getElementById('f-ssl').checked,
+      };
+
+      if (!body.name || !body.host || !body.user || !body.db) {
+        alert('Name, host, user, and database are required.');
+        return;
+      }
+
+      const url = editingName ? `/api/dbs/${encodeURIComponent(editingName)}` : '/api/dbs';
+      const method = editingName ? 'PUT' : 'POST';
+
+      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const data = await res.json();
+      if (!res.ok) { alert(data.error || 'Error'); return; }
+
+      hideForm();
+      load();
+    }
+
+    async function retry(name) {
+      const res = await fetch('/api/dbs');
+      const dbs = await res.json();
+      const d = dbs.find(x => x.name === name);
+      if (!d) return;
+
+      const r = await fetch(`/api/dbs/${encodeURIComponent(name)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(d),
+      });
+      if (r.ok) load();
+    }
+
+    async function del(name) {
+      if (!confirm(`Delete "${name}"?`)) return;
+      const res = await fetch(`/api/dbs/${encodeURIComponent(name)}`, { method: 'DELETE' });
+      if (res.ok) load();
+    }
+
+    function esc(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    load();
+  </script>
+</body>
+</html>

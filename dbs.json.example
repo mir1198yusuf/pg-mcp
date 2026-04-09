@@ -1,0 +1,22 @@
+[
+  {
+    "name": "main",
+    "description": "Main app DB — users, orders, products",
+    "host": "localhost",
+    "port": 5432,
+    "user": "postgres",
+    "password": "yourpassword",
+    "db": "myapp",
+    "ssl": false
+  },
+  {
+    "name": "analytics",
+    "description": "Analytics DB — events, metrics",
+    "host": "localhost",
+    "port": 5432,
+    "user": "postgres",
+    "password": "yourpassword",
+    "db": "analytics",
+    "ssl": false
+  }
+]
