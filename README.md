@@ -2,6 +2,8 @@
 
 A minimal, local MCP server that gives Claude Code read-only access to your PostgreSQL databases. No cloud, no third-party service — runs entirely on your machine. Supports multiple databases.
 
+![DB list](assets/ui-list.png)
+
 ## How it works
 
 Claude connects to this server over HTTP. When it needs data, it first calls `list_dbs` to find the right database, then calls `query` with a SQL statement. The server blocks any write operations before they reach the DB.
@@ -52,6 +54,8 @@ Visit `http://localhost:3000/ui` to manage databases:
 - **Edit** an existing one (description, credentials, anything)
 - **Retry** a failed connection without restarting the server
 - **Delete** a connection
+
+![Add DB form](assets/ui-form.png)
 
 Each database shows a live availability status. If a DB is unreachable at startup the server still starts — Claude will be told that DB is unavailable.
 
