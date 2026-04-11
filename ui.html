@@ -25,7 +25,6 @@
 
     header h1 { font-size: 1.2rem; font-weight: 700; letter-spacing: 0.03em; }
 
-    /* Buttons */
     button {
       cursor: pointer;
       border: none;
@@ -41,7 +40,6 @@
     .btn-danger { background: transparent; color: #dc2626; border: 1px solid #fca5a5; }
     .btn-danger:hover { background: #fef2f2; }
 
-    /* Status badge */
     .badge {
       display: inline-block;
       font-size: 0.72rem;
@@ -49,10 +47,9 @@
       padding: 2px 8px;
       border-radius: 99px;
     }
-    .badge-ok { background: #dcfce7; color: #166534; }
+    .badge-ok  { background: #dcfce7; color: #166534; }
     .badge-err { background: #fee2e2; color: #991b1b; }
 
-    /* DB list */
     #db-list { display: flex; flex-direction: column; gap: 10px; }
 
     .db-card {
@@ -61,17 +58,12 @@
       border-radius: 10px;
       padding: 14px 16px;
     }
-    .db-card-row1 {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .db-name { font-weight: 600; font-size: 0.95rem; }
+    .db-card-row1 { display: flex; align-items: center; gap: 10px; }
+    .db-identifier { font-weight: 600; font-size: 0.95rem; font-family: monospace; }
     .db-meta { font-size: 0.78rem; color: #888; margin-top: 4px; }
     .db-desc { font-size: 0.82rem; color: #555; margin-top: 2px; }
     .db-actions { margin-left: auto; display: flex; gap: 6px; }
 
-    /* Form */
     #form-container {
       background: #fff;
       border: 1px solid #e5e7eb;
@@ -91,6 +83,8 @@
     .form-grid .full { grid-column: 1 / -1; }
 
     label { display: block; font-size: 0.78rem; color: #555; margin-bottom: 4px; }
+    .label-hint { font-size: 0.7rem; color: #aaa; margin-left: 4px; }
+
     input[type="text"], input[type="password"], input[type="number"] {
       width: 100%;
       padding: 7px 10px;
@@ -100,7 +94,7 @@
       outline: none;
     }
     input:focus { border-color: #2563eb; }
-    input:disabled { background: #f3f4f6; color: #888; }
+    input:disabled { background: #f3f4f6; color: #888; cursor: not-allowed; }
 
     .ssl-row { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; }
     .ssl-row input { width: auto; }
@@ -121,11 +115,13 @@
     <h2 id="form-title">Add Database</h2>
     <div class="form-grid">
       <div class="full">
-        <label>Name <span style="color:#aaa;font-size:0.72rem">(used by Claude to identify this DB)</span></label>
-        <input id="f-name" type="text" placeholder="e.g. main_app">
+        <label>
+          Identifier <span class="label-hint">no spaces — Claude uses this to identify the DB (e.g. main_app, test_prep)</span>
+        </label>
+        <input id="f-identifier" type="text" placeholder="e.g. main_app">
       </div>
       <div class="full">
-        <label>Description</label>
+        <label>Description <span class="label-hint">helps Claude pick the right DB without asking</span></label>
         <input id="f-desc" type="text" placeholder="e.g. Main app DB — users, orders, products">
       </div>
       <div>
@@ -145,7 +141,7 @@
         <input id="f-pass" type="password" placeholder="••••••••">
       </div>
       <div>
-        <label>Database</label>
+        <label>Database <span class="label-hint">actual PG db name</span></label>
         <input id="f-db" type="text" placeholder="mydb">
       </div>
       <div style="display:flex;align-items:flex-end;padding-bottom:2px">
@@ -163,12 +159,11 @@
   <div id="db-list"></div>
 
   <script>
-    let editingName = null; // null = adding, string = editing
+    let editingIdentifier = null; // null = adding, string = editing
 
     async function load() {
       const res = await fetch('/api/dbs');
-      const dbs = await res.json();
-      render(dbs);
+      render(await res.json());
     }
 
     function render(dbs) {
@@ -178,16 +173,16 @@
         return;
       }
       el.innerHTML = dbs.map(d => `
-        <div class="db-card" id="card-${d.name}">
+        <div class="db-card">
           <div class="db-card-row1">
-            <span class="db-name">${esc(d.name)}</span>
+            <span class="db-identifier">${esc(d.identifier)}</span>
             <span class="badge ${d.status === 'available' ? 'badge-ok' : 'badge-err'}">
               ${d.status === 'available' ? '● available' : '✕ unavailable'}
             </span>
             <div class="db-actions">
-              <button class="btn-ghost" onclick="showEdit('${esc(d.name)}')">Edit</button>
-              <button class="btn-ghost" onclick="retry('${esc(d.name)}')">Retry</button>
-              <button class="btn-danger" onclick="del('${esc(d.name)}')">Delete</button>
+              <button class="btn-ghost" onclick="showEdit('${esc(d.identifier)}')">Edit</button>
+              <button class="btn-ghost" onclick="retry('${esc(d.identifier)}')">Retry</button>
+              <button class="btn-danger" onclick="del('${esc(d.identifier)}')">Delete</button>
             </div>
           </div>
           ${d.description ? `<div class="db-desc">${esc(d.description)}</div>` : ''}
@@ -197,10 +192,10 @@
     }
 
     function showForm(data = {}, isEdit = false) {
-      editingName = isEdit ? data.name : null;
+      editingIdentifier = isEdit ? data.identifier : null;
       document.getElementById('form-title').textContent = isEdit ? 'Edit Database' : 'Add Database';
-      document.getElementById('f-name').value = data.name || '';
-      document.getElementById('f-name').disabled = isEdit;
+      document.getElementById('f-identifier').value = data.identifier || '';
+      document.getElementById('f-identifier').disabled = isEdit; // identifier is immutable after creation
       document.getElementById('f-desc').value = data.description || '';
       document.getElementById('f-host').value = data.host || '';
       document.getElementById('f-port').value = data.port || 5432;
@@ -209,24 +204,26 @@
       document.getElementById('f-db').value = data.db || '';
       document.getElementById('f-ssl').checked = !!data.ssl;
       document.getElementById('form-container').style.display = 'block';
-      document.getElementById('f-name').focus();
+      if (!isEdit) document.getElementById('f-identifier').focus();
+      else document.getElementById('f-desc').focus();
     }
 
     function hideForm() {
-      editingName = null;
+      editingIdentifier = null;
       document.getElementById('form-container').style.display = 'none';
     }
 
-    async function showEdit(name) {
+    async function showEdit(identifier) {
       const res = await fetch('/api/dbs');
       const dbs = await res.json();
-      const d = dbs.find(x => x.name === name);
+      const d = dbs.find(x => x.identifier === identifier);
       if (d) showForm(d, true);
     }
 
     async function submitForm() {
+      const identifier = document.getElementById('f-identifier').value.trim();
       const body = {
-        name:        document.getElementById('f-name').value.trim(),
+        identifier,
         description: document.getElementById('f-desc').value.trim(),
         host:        document.getElementById('f-host').value.trim(),
         port:        Number(document.getElementById('f-port').value) || 5432,
@@ -236,13 +233,12 @@
         ssl:         document.getElementById('f-ssl').checked,
       };
 
-      if (!body.name || !body.host || !body.user || !body.db) {
-        alert('Name, host, user, and database are required.');
-        return;
-      }
+      if (!editingIdentifier && !body.identifier) { alert('Identifier is required.'); return; }
+      if (!editingIdentifier && /\s/.test(body.identifier)) { alert('Identifier must not contain spaces.'); return; }
+      if (!body.host || !body.user || !body.db) { alert('Host, user, and database are required.'); return; }
 
-      const url = editingName ? `/api/dbs/${encodeURIComponent(editingName)}` : '/api/dbs';
-      const method = editingName ? 'PUT' : 'POST';
+      const url    = editingIdentifier ? `/api/dbs/${encodeURIComponent(editingIdentifier)}` : '/api/dbs';
+      const method = editingIdentifier ? 'PUT' : 'POST';
 
       const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       const data = await res.json();
@@ -252,13 +248,13 @@
       load();
     }
 
-    async function retry(name) {
+    async function retry(identifier) {
       const res = await fetch('/api/dbs');
       const dbs = await res.json();
-      const d = dbs.find(x => x.name === name);
+      const d = dbs.find(x => x.identifier === identifier);
       if (!d) return;
 
-      const r = await fetch(`/api/dbs/${encodeURIComponent(name)}`, {
+      const r = await fetch(`/api/dbs/${encodeURIComponent(identifier)}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(d),
@@ -266,9 +262,9 @@
       if (r.ok) load();
     }
 
-    async function del(name) {
-      if (!confirm(`Delete "${name}"?`)) return;
-      const res = await fetch(`/api/dbs/${encodeURIComponent(name)}`, { method: 'DELETE' });
+    async function del(identifier) {
+      if (!confirm(`Delete "${identifier}"?`)) return;
+      const res = await fetch(`/api/dbs/${encodeURIComponent(identifier)}`, { method: 'DELETE' });
       if (res.ok) load();
     }
 

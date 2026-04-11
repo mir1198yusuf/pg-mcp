@@ -1,6 +1,6 @@
 [
   {
-    "name": "main",
+    "identifier": "main_app",
     "description": "Main app DB — users, orders, products",
     "host": "localhost",
     "port": 5432,
@@ -10,13 +10,13 @@
     "ssl": false
   },
   {
-    "name": "analytics",
-    "description": "Analytics DB — events, metrics",
+    "identifier": "test_prep",
+    "description": "Test prep platform DB — students, exams, results",
     "host": "localhost",
     "port": 5432,
     "user": "postgres",
     "password": "yourpassword",
-    "db": "analytics",
+    "db": "test_prep_db",
     "ssl": false
   }
 ]

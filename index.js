@@ -12,7 +12,8 @@ const { Pool } = pg;
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DBS_FILE = path.join(__dirname, 'dbs.json');
 
-// In-memory state — each entry: { name, description, host, port, user, password, db, ssl, pool, status }
+// In-memory state — each entry: { identifier, description, host, port, user, password, db, ssl, pool, status }
+// identifier: slug, no whitespace, set once, never changed — Claude uses this to identify the DB
 let dbs = [];
 
 async function initPool(entry) {
@@ -28,11 +29,11 @@ async function initPool(entry) {
     await pool.query('SELECT 1');
     entry.pool = pool;
     entry.status = 'available';
-    console.log(`[db] ${entry.name} connected`);
+    console.log(`[db] ${entry.identifier} connected`);
   } catch (err) {
     entry.pool = null;
     entry.status = 'unavailable';
-    console.warn(`[db] ${entry.name} unavailable: ${err.message}`);
+    console.warn(`[db] ${entry.identifier} unavailable: ${err.message}`);
   }
 }
 
@@ -63,6 +64,7 @@ async function loadDbs() {
   }
 }
 
+const SLUG_RE = /^\S+$/; // no whitespace
 const WRITE_PATTERN = /^\s*(insert|update|delete|drop|create|alter|truncate|grant|revoke|replace|merge)\b/i;
 
 const app = express();
@@ -79,10 +81,11 @@ app.get('/api/dbs', (req, res) => {
 });
 
 app.post('/api/dbs', async (req, res) => {
-  const { name, description, host, port, user, password, db, ssl } = req.body;
-  if (dbs.find(d => d.name === name)) return res.status(400).json({ error: 'Name already exists' });
+  const { identifier, description, host, port, user, password, db, ssl } = req.body;
+  if (!SLUG_RE.test(identifier)) return res.status(400).json({ error: 'Identifier must not contain spaces or whitespace' });
+  if (dbs.find(d => d.identifier === identifier)) return res.status(400).json({ error: 'Identifier already exists' });
 
-  const entry = { name, description, host, port: Number(port) || 5432, user, password, db, ssl: !!ssl, pool: null, status: 'unavailable' };
+  const entry = { identifier, description, host, port: Number(port) || 5432, user, password, db, ssl: !!ssl, pool: null, status: 'unavailable' };
   dbs.push(entry);
   await initPool(entry);
   await persistDbs();
@@ -90,24 +93,23 @@ app.post('/api/dbs', async (req, res) => {
   res.json(client);
 });
 
-app.put('/api/dbs/:oldName', async (req, res) => {
-  const idx = dbs.findIndex(d => d.name === req.params.oldName);
+// identifier is immutable — PUT only updates connection config
+app.put('/api/dbs/:identifier', async (req, res) => {
+  const idx = dbs.findIndex(d => d.identifier === req.params.identifier);
   if (idx === -1) return res.status(404).json({ error: 'DB not found' });
 
-  const { name, description, host, port, user, password, db, ssl } = req.body;
-  if (name !== req.params.oldName && dbs.find(d => d.name === name)) return res.status(400).json({ error: 'Name already exists' });
-
+  const { description, host, port, user, password, db, ssl } = req.body;
   const entry = dbs[idx];
   await destroyPool(entry);
-  Object.assign(entry, { name, description, host, port: Number(port) || 5432, user, password, db, ssl: !!ssl });
+  Object.assign(entry, { description, host, port: Number(port) || 5432, user, password, db, ssl: !!ssl });
   await initPool(entry);
   await persistDbs();
   const { pool, ...client } = entry;
   res.json(client);
 });
 
-app.delete('/api/dbs/:name', async (req, res) => {
-  const idx = dbs.findIndex(d => d.name === req.params.name);
+app.delete('/api/dbs/:identifier', async (req, res) => {
+  const idx = dbs.findIndex(d => d.identifier === req.params.identifier);
   if (idx === -1) return res.status(404).json({ error: 'DB not found' });
 
   await destroyPool(dbs[idx]);
@@ -123,34 +125,34 @@ app.post('/mcp', async (req, res) => {
 
   server.tool(
     'list_dbs',
-    'List all configured databases with their names, descriptions, and availability status. Call this first to find the correct db_name before querying.',
+    'List all configured databases with their identifiers, descriptions, and availability status. Call this first to find the correct identifier before querying.',
     {},
     async () => {
-      const list = dbs.map(d => `${d.name} [${d.status}] — ${d.description || 'no description'}`).join('\n');
+      const list = dbs.map(d => `${d.identifier} [${d.status}] — ${d.description || 'no description'}`).join('\n');
       return { content: [{ type: 'text', text: list || 'No databases configured.' }] };
     }
   );
 
   server.tool(
     'query',
-    'Run a read-only SQL query on a specific database. Use list_dbs first to get the correct db_name if unsure.',
+    'Run a read-only SQL query on a specific database. Use list_dbs first to get the correct identifier if unsure.',
     {
-      db_name: z.string().describe('Exact db_name from list_dbs'),
+      identifier: z.string().describe('Exact identifier from list_dbs'),
       sql: z.string().describe('A SELECT (read-only) SQL statement'),
     },
-    async ({ db_name, sql }) => {
-      const entry = dbs.find(d => d.name === db_name);
-      if (!entry) return { content: [{ type: 'text', text: `DB "${db_name}" not found. Use list_dbs to see available databases.` }], isError: true };
-      if (entry.status === 'unavailable') return { content: [{ type: 'text', text: `DB "${db_name}" is unavailable. Ask the user to retry the connection from the UI.` }], isError: true };
+    async ({ identifier, sql }) => {
+      const entry = dbs.find(d => d.identifier === identifier);
+      if (!entry) return { content: [{ type: 'text', text: `DB "${identifier}" not found. Use list_dbs to see available databases.` }], isError: true };
+      if (entry.status === 'unavailable') return { content: [{ type: 'text', text: `DB "${identifier}" is unavailable. Ask the user to retry the connection from the UI.` }], isError: true };
       if (WRITE_PATTERN.test(sql)) return { content: [{ type: 'text', text: 'Blocked: only read-only queries are allowed.' }], isError: true };
 
-      console.log(`[query:${db_name}] ${sql}`);
+      console.log(`[query:${identifier}] ${sql}`);
       try {
         const result = await entry.pool.query(sql);
-        console.log(`[query:${db_name} done] ${result.rowCount} row(s) returned`);
+        console.log(`[query:${identifier} done] ${result.rowCount} row(s) returned`);
         return { content: [{ type: 'text', text: JSON.stringify(result.rows, null, 2) }] };
       } catch (err) {
-        console.error(`[query:${db_name} error] ${err.message}`);
+        console.error(`[query:${identifier} error] ${err.message}`);
         return { content: [{ type: 'text', text: `DB error: ${err.message}` }], isError: true };
       }
     }
