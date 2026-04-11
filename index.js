@@ -81,41 +81,53 @@ app.get('/api/dbs', (req, res) => {
 });
 
 app.post('/api/dbs', async (req, res) => {
-  const { identifier, description, host, port, user, password, db, ssl } = req.body;
-  if (!SLUG_RE.test(identifier)) return res.status(400).json({ error: 'Identifier must not contain spaces or whitespace' });
-  if (dbs.find(d => d.identifier === identifier)) return res.status(400).json({ error: 'Identifier already exists' });
+  try {
+    const { identifier, description, host, port, user, password, db, ssl } = req.body;
+    if (!SLUG_RE.test(identifier)) return res.status(400).json({ error: 'Identifier must not contain spaces or whitespace' });
+    if (dbs.find(d => d.identifier === identifier)) return res.status(400).json({ error: 'Identifier already exists' });
 
-  const entry = { identifier, description, host, port: Number(port) || 5432, user, password, db, ssl: !!ssl, pool: null, status: 'unavailable' };
-  dbs.push(entry);
-  await initPool(entry);
-  await persistDbs();
-  const { pool, ...client } = entry;
-  res.json(client);
+    const entry = { identifier, description, host, port: Number(port) || 5432, user, password, db, ssl: !!ssl, pool: null, status: 'unavailable' };
+    dbs.push(entry);
+    await initPool(entry);
+    await persistDbs();
+    const { pool, ...client } = entry;
+    res.json(client);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // identifier is immutable — PUT only updates connection config
 app.put('/api/dbs/:identifier', async (req, res) => {
-  const idx = dbs.findIndex(d => d.identifier === req.params.identifier);
-  if (idx === -1) return res.status(404).json({ error: 'DB not found' });
+  try {
+    const idx = dbs.findIndex(d => d.identifier === req.params.identifier);
+    if (idx === -1) return res.status(404).json({ error: 'DB not found' });
 
-  const { description, host, port, user, password, db, ssl } = req.body;
-  const entry = dbs[idx];
-  await destroyPool(entry);
-  Object.assign(entry, { description, host, port: Number(port) || 5432, user, password, db, ssl: !!ssl });
-  await initPool(entry);
-  await persistDbs();
-  const { pool, ...client } = entry;
-  res.json(client);
+    const { description, host, port, user, password, db, ssl } = req.body;
+    const entry = dbs[idx];
+    await destroyPool(entry);
+    Object.assign(entry, { description, host, port: Number(port) || 5432, user, password, db, ssl: !!ssl });
+    await initPool(entry);
+    await persistDbs();
+    const { pool, ...client } = entry;
+    res.json(client);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.delete('/api/dbs/:identifier', async (req, res) => {
-  const idx = dbs.findIndex(d => d.identifier === req.params.identifier);
-  if (idx === -1) return res.status(404).json({ error: 'DB not found' });
+  try {
+    const idx = dbs.findIndex(d => d.identifier === req.params.identifier);
+    if (idx === -1) return res.status(404).json({ error: 'DB not found' });
 
-  await destroyPool(dbs[idx]);
-  dbs.splice(idx, 1);
-  await persistDbs();
-  res.json({ ok: true });
+    await destroyPool(dbs[idx]);
+    dbs.splice(idx, 1);
+    await persistDbs();
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // ── MCP ───────────────────────────────────────────────────────────────────────

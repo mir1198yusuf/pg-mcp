@@ -240,12 +240,15 @@
       const url    = editingIdentifier ? `/api/dbs/${encodeURIComponent(editingIdentifier)}` : '/api/dbs';
       const method = editingIdentifier ? 'PUT' : 'POST';
 
-      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-      const data = await res.json();
-      if (!res.ok) { alert(data.error || 'Error'); return; }
-
-      hideForm();
-      load();
+      try {
+        const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        const data = await res.json();
+        if (!res.ok) { alert(data.error || 'Error'); return; }
+        hideForm();
+        load();
+      } catch (err) {
+        alert('Request failed: ' + err.message);
+      }
     }
 
     async function retry(identifier) {
