@@ -137,7 +137,7 @@ app.post('/mcp', async (req, res) => {
 
   server.tool(
     'list_dbs',
-    'List all configured databases with their identifiers, descriptions, and availability status. Call this first to find the correct identifier before querying.',
+    'List all configured databases with their identifiers, descriptions, and availability status. Call this periodically before querying to get a fresh list — the user may have added or changed databases via the UI since the last time you called this.',
     {},
     async () => {
       const list = dbs.map(d => `${d.identifier} [${d.status}] — ${d.description || 'no description'}`).join('\n');
@@ -147,7 +147,7 @@ app.post('/mcp', async (req, res) => {
 
   server.tool(
     'query',
-    'Run a read-only SQL query on a specific database. Use list_dbs first to get the correct identifier if unsure.',
+    'Run a read-only SQL query on a specific database. If this returns an error saying the identifier was not found, call list_dbs to get a fresh database list and retry with the correct identifier.',
     {
       identifier: z.string().describe('Exact identifier from list_dbs'),
       sql: z.string().describe('A SELECT (read-only) SQL statement'),
