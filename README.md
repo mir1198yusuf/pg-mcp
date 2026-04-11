@@ -26,7 +26,7 @@ npm start
 
 Use the UI to add your databases. Connection details are saved to `dbs.json` (gitignored — never committed).
 
-You can also bootstrap from the example file:
+Alternatively, You can also bootstrap from the example file:
 
 ```bash
 cp dbs.json.example dbs.json  # then edit with your credentials
