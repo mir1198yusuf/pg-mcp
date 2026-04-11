@@ -12,7 +12,12 @@ Claude connects to this server over HTTP. When it needs data, it first calls `li
 git clone https://github.com/mir1198yusuf/pg-mcp
 cd pg-mcp
 npm install
-cp .env.example .env   # set PORT if needed (default 3000)
+```
+
+To change the default port (3000), create a `.env` file:
+
+```env
+PORT=3001
 ```
 
 ## Add databases
@@ -60,7 +65,7 @@ Each database shows a live availability status. If a DB is unreachable at startu
 | Tool | Input | Description |
 |------|-------|-------------|
 | `list_dbs` | — | Lists all databases with identifiers, descriptions, and availability status. Claude calls this periodically to get a fresh list — database properties and availability can change while the server is running. |
-| `query` | `identifier`, `sql` | Runs a read-only SQL statement on the identified database and returns rows as JSON. If the identifier is not found, Claude is instructed to call `list_dbs` again and retry — this handles cases where a database was added or modified after the last list. |
+| `query` | `db_identifier`, `sql` | Runs a read-only SQL statement on the identified database and returns rows as JSON. If the db_identifier is not found, Claude is instructed to call `list_dbs` again and retry — this handles cases where a database was added or modified after the last list. |
 
 ## Security
 

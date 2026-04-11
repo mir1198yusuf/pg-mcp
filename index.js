@@ -147,24 +147,24 @@ app.post('/mcp', async (req, res) => {
 
   server.tool(
     'query',
-    'Run a read-only SQL query on a specific database. If this returns an error saying the identifier was not found, call list_dbs to get a fresh database list and retry with the correct identifier.',
+    'Run a read-only SQL query on a specific database. If this returns an error saying the db_identifier was not found, call list_dbs to get a fresh database list and retry with the correct db_identifier.',
     {
-      identifier: z.string().describe('Exact identifier from list_dbs'),
+      db_identifier: z.string().describe('Exact db_identifier from list_dbs'),
       sql: z.string().describe('A SELECT (read-only) SQL statement'),
     },
-    async ({ identifier, sql }) => {
-      const entry = dbs.find(d => d.identifier === identifier);
-      if (!entry) return { content: [{ type: 'text', text: `DB "${identifier}" not found. Use list_dbs to see available databases.` }], isError: true };
-      if (entry.status === 'unavailable') return { content: [{ type: 'text', text: `DB "${identifier}" is unavailable. Ask the user to retry the connection from the UI.` }], isError: true };
+    async ({ db_identifier, sql }) => {
+      const entry = dbs.find(d => d.identifier === db_identifier);
+      if (!entry) return { content: [{ type: 'text', text: `DB "${db_identifier}" not found. Use list_dbs to see available databases.` }], isError: true };
+      if (entry.status === 'unavailable') return { content: [{ type: 'text', text: `DB "${db_identifier}" is unavailable. Ask the user to retry the connection from the UI.` }], isError: true };
       if (WRITE_PATTERN.test(sql)) return { content: [{ type: 'text', text: 'Blocked: only read-only queries are allowed.' }], isError: true };
 
-      console.log(`[query:${identifier}] ${sql}`);
+      console.log(`[query:${db_identifier}] ${sql}`);
       try {
         const result = await entry.pool.query(sql);
-        console.log(`[query:${identifier} done] ${result.rowCount} row(s) returned`);
+        console.log(`[query:${db_identifier} done] ${result.rowCount} row(s) returned`);
         return { content: [{ type: 'text', text: JSON.stringify(result.rows, null, 2) }] };
       } catch (err) {
-        console.error(`[query:${identifier} error] ${err.message}`);
+        console.error(`[query:${db_identifier} error] ${err.message}`);
         return { content: [{ type: 'text', text: `DB error: ${err.message}` }], isError: true };
       }
     }
