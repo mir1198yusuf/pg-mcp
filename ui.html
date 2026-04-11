@@ -285,12 +285,19 @@
       const d = dbs.find(x => x.identifier === identifier);
       if (!d) return;
 
-      const r = await fetch(`/api/dbs/${encodeURIComponent(identifier)}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(d),
-      });
-      if (r.ok) load();
+      showLoader();
+      try {
+        const r = await fetch(`/api/dbs/${encodeURIComponent(identifier)}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(d),
+        });
+        if (r.ok) load();
+      } catch (err) {
+        alert('Retry failed: ' + err.message);
+      } finally {
+        hideLoader();
+      }
     }
 
     async function del(identifier) {
