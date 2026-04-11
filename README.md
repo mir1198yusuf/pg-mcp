@@ -64,6 +64,7 @@ Each database shows a live availability status. If a DB is unreachable at startu
 
 ## Security
 
+- **Never share `dbs.json`** — it contains your database credentials in plain text. It is gitignored for this reason — never commit or share it.
 - **Read-only enforced server-side** — `INSERT`, `UPDATE`, `DELETE`, `DROP`, `CREATE`, `ALTER`, `TRUNCATE`, `GRANT`, `REVOKE`, `REPLACE`, `MERGE` are all blocked before reaching the DB.
 - **Do not run this MCP server on a public server** — this is intended to run locally on your own machine only. Running it on a VPS or any publicly reachable host exposes your databases to anyone who can reach the port.
 
