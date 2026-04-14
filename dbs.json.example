@@ -1,5 +1,8 @@
 [
   {
+    "_readme": "This is what ~/.pg-mcp/dbs.json looks like. Remove this _readme entry if you copy this file directly. Managed via the UI at http://localhost:3000/ui"
+  },
+  {
     "identifier": "main_app",
     "description": "Main app DB — users, orders, products",
     "host": "localhost",
