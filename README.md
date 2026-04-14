@@ -4,7 +4,7 @@
 
 A minimal, local MCP server that gives Claude Code read-only access to your PostgreSQL databases. No cloud, no third-party service — runs entirely on your machine. Supports multiple databases. Also has UI dashboard for easy setup.
 
-![DB list](assets/ui-list.png)
+![DB list](https://raw.githubusercontent.com/mir1198yusuf/pg-mcp/main/assets/ui-list.png)
 
 ## How it works
 
@@ -13,30 +13,26 @@ Claude connects to this server over HTTP. When it needs data, it first calls `li
 ## Setup
 
 ```bash
-git clone https://github.com/mir1198yusuf/pg-mcp
-cd pg-mcp
-npm install
-cp .env.example .env   # set PORT if needed (default 3000)
+npm install -g pg-mcp
 ```
+
+## Run
+
+```bash
+pg-mcp
+```
+
+First run asks for the port (default 3000), saves config to `~/.pg-mcp/.env`, then starts the server.
 
 ## Add databases
 
-Start the server and open the UI:
+Open the UI in your browser:
 
-```bash
-npm start
-# open http://localhost:3000/ui
+```
+http://localhost:3000/ui
 ```
 
-Use the UI to add your databases. Connection details are saved to `dbs.json` (gitignored — never committed).
-
-Alternatively, You can also bootstrap from the example file:
-
-```bash
-cp dbs.json.example dbs.json  # then edit with your credentials
-```
-
-Then restart the server so it picks up the new `dbs.json`.
+Use it to add your database connections. Details are saved to `~/.pg-mcp/dbs.json` — never committed, stays on your machine.
 
 ## Connect Claude Code
 
@@ -57,7 +53,7 @@ Visit `http://localhost:3000/ui` to manage databases:
 - **Retry** a failed connection without restarting the server
 - **Delete** a connection
 
-![Add DB form](assets/ui-form.png)
+![Add DB form](https://raw.githubusercontent.com/mir1198yusuf/pg-mcp/main/assets/ui-form.png)
 
 Each database shows a live availability status. If a DB is unreachable at startup the server still starts — Claude will be told that DB is unavailable.
 
@@ -70,10 +66,11 @@ Each database shows a live availability status. If a DB is unreachable at startu
 
 ## Security
 
-- **Never share `dbs.json`** — it contains your database credentials in plain text. It is gitignored for this reason — never commit or share it.
+- **Never share `~/.pg-mcp/dbs.json`** — it contains your database credentials in plain text. Never commit or share it.
 - **Read-only enforced server-side** — `INSERT`, `UPDATE`, `DELETE`, `DROP`, `CREATE`, `ALTER`, `TRUNCATE`, `GRANT`, `REVOKE`, `REPLACE`, `MERGE` are all blocked before reaching the DB.
 - **Do not run this MCP server on a public server** — this is intended to run locally on your own machine only. Running it on a VPS or any publicly reachable host exposes your databases to anyone who can reach the port.
 
 ## Roadmap
 
-- **Docker / npm package** — ship as an npm-installable package that spins up the server in a Docker container, so Node.js is not required on the host machine.
+- **Docker support** — run without requiring a Node.js installation on the host machine.
+- **Multiple database support per query** — cross-database queries.
