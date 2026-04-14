@@ -1,10 +1,39 @@
 {
   "name": "pg-mcp",
   "version": "1.0.0",
+  "description": "Minimal local MCP server for read-only PostgreSQL access via Claude Code. Supports multiple databases with a UI dashboard.",
   "type": "module",
-  "scripts": {
-    "start": "node index.js"
+  "bin": {
+    "pg-mcp": "./bin/pg-mcp.js"
   },
+  "files": [
+    "index.js",
+    "ui.html",
+    "bin/"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node bin/pg-mcp.js"
+  },
+  "keywords": [
+    "mcp",
+    "postgresql",
+    "postgres",
+    "claude",
+    "claude-code",
+    "ai",
+    "database",
+    "local-mcp"
+  ],
+  "author": "mir1198yusuf",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mir1198yusuf/pg-mcp"
+  },
+  "homepage": "https://github.com/mir1198yusuf/pg-mcp#readme",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.10.0",
     "dotenv": "^16.0.0",

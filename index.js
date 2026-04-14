@@ -1,16 +1,26 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
+import os from 'os';
 import express from 'express';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import pg from 'pg';
 import { z } from 'zod';
 import fs from 'fs/promises';
+import fss from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
 const { Pool } = pg;
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DBS_FILE = path.join(__dirname, 'dbs.json');
+
+const CONFIG_DIR = path.join(os.homedir(), '.pg-mcp');
+const DBS_FILE = path.join(CONFIG_DIR, 'dbs.json');
+
+// Load env from ~/.pg-mcp/.env (works for both npm global and local dev)
+dotenv.config({ path: path.join(CONFIG_DIR, '.env') });
+
+// Ensure config dir exists
+fss.mkdirSync(CONFIG_DIR, { recursive: true });
 
 // In-memory state — each entry: { identifier, description, host, port, user, password, db, ssl, pool, status }
 // identifier: slug, no whitespace, set once, never changed — Claude uses this to identify the DB
