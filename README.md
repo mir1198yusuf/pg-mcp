@@ -22,7 +22,15 @@ npm install -g pg-mcp
 pg-mcp
 ```
 
-First run asks for the port (default 3000), saves config to `~/.pg-mcp/.env`, then starts the server.
+First run will ask you:
+
+```
+pg-mcp: first-time setup
+─────────────────────────
+Port to run on (default: 3000):
+```
+
+Config is saved to `~/.pg-mcp/.env`. Every run after that starts the server directly.
 
 ## Add databases
 
@@ -70,7 +78,3 @@ Each database shows a live availability status. If a DB is unreachable at startu
 - **Read-only enforced server-side** — `INSERT`, `UPDATE`, `DELETE`, `DROP`, `CREATE`, `ALTER`, `TRUNCATE`, `GRANT`, `REVOKE`, `REPLACE`, `MERGE` are all blocked before reaching the DB.
 - **Do not run this MCP server on a public server** — this is intended to run locally on your own machine only. Running it on a VPS or any publicly reachable host exposes your databases to anyone who can reach the port.
 
-## Roadmap
-
-- **Docker support** — run without requiring a Node.js installation on the host machine.
-- **Multiple database support per query** — cross-database queries.
