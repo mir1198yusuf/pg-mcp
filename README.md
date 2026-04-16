@@ -13,7 +13,7 @@ Claude connects to this server over HTTP. When it needs data, it first calls `li
 ## Setup
 
 ```bash
-npm install -g @mir1198yusuf/pg-mcp
+npm install @mir1198yusuf/pg-mcp -g
 ```
 
 ## Run
