@@ -1,6 +1,6 @@
 {
   "name": "@mir1198yusuf/pg-mcp",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Minimal local MCP server for read-only PostgreSQL access via Claude Code. Supports multiple databases with a UI dashboard.",
   "type": "module",
   "bin": {
