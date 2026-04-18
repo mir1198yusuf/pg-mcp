@@ -1,6 +1,7 @@
 # pg-mcp
 
 ![Built with Claude Code](https://img.shields.io/badge/Built%20with-Claude%20Code-orange)
+![npm downloads](https://img.shields.io/npm/dm/@mir1198yusuf/pg-mcp)
 
 A minimal, local MCP server that gives Claude Code read-only access to your PostgreSQL databases. No cloud, no third-party service — runs entirely on your machine. Supports multiple databases. Also has UI dashboard for easy setup.
 
